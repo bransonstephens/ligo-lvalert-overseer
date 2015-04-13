@@ -1,0 +1,25 @@
+#!/usr/bin/env python
+from datetime import datetime
+from ligo.overseer.client import send_to_overseer
+import logging, time
+from twisted.internet import reactor
+from multiprocessing import Process, Manager
+
+logger = logging.getLogger('overseer_test_client')
+logger.setLevel(logging.DEBUG)
+logger.addHandler(logging.StreamHandler())
+
+manager = Manager()
+
+while True:
+    time.sleep(1)
+    mdict = {
+        'message': 'Hi, this is a test. %s ' % datetime.now().isoformat(),
+        'node_name' : 'branson_test',
+        'action': 'push'
+    }
+    rdict = manager.dict()
+    p = Process(target=send_to_overseer, args=(mdict, rdict, logger))
+    p.start()
+    p.join()
+    print "rdict = %s" % rdict
