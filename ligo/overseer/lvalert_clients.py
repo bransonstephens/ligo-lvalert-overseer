@@ -85,7 +85,8 @@ class LVAlertListenClient(Client):
         #  Specify sslv3 to get around Sun Java SSL bug handling session ticket
         #  https://rt.phys.uwm.edu/Ticket/Display.html?id=1825
         #  http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6728126
-        t=TLSSettings(require=True,verify_peer=False, ctx=Context('sslv3'))
+        #t=TLSSettings(require=True,verify_peer=False, ctx=Context('sslv3'))
+        t=TLSSettings(require=True,verify_peer=False)
 
         Client.__init__(self, jid, password, \
             auth_methods=["sasl:GSSAPI","sasl:PLAIN"], tls_settings=t, keepalive=30)
@@ -108,7 +109,8 @@ class LVAlertSendClient(Client):
         #  Specify sslv3 to get around Sun Java SSL bug handling session ticket
         #  https://rt.phys.uwm.edu/Ticket/Display.html?id=1825
         #  http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6728126
-        t=TLSSettings(require=True,verify_peer=False, ctx=Context('sslv3'))
+        # t=TLSSettings(require=True,verify_peer=False, ctx=Context('sslv3'))
+        t=TLSSettings(require=True,verify_peer=False)
 
         Client.__init__(self, self.jid, password, \
             auth_methods=["sasl:GSSAPI","sasl:PLAIN"], tls_settings=t,keepalive=30)

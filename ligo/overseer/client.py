@@ -56,12 +56,12 @@ class OverseerClientFactory(protocol.ClientFactory):
                 pass
 
 # Send a dictionary of information to the Overseer
-def send_to_overseer(mdict, rdict, logger, standalone=True):
+def send_to_overseer(mdict, rdict, logger, standalone=True, port=8000):
     f = OverseerClientFactory(json.dumps(mdict), rdict, logger, standalone)
     if standalone:
-        reactor.connectTCP("localhost", 8000, f)
+        reactor.connectTCP("localhost", port, f)
         reactor.run()
     else:
-        reactor.callFromThread(reactor.connectTCP, "localhost", 8000, f)
+        reactor.callFromThread(reactor.connectTCP, "localhost", port, f)
 
 
