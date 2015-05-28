@@ -73,33 +73,11 @@ class LVAlertMessageHandler(object):
 
 #-------------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------------
-# LVAlert client classes
+# LVAlert client class
 #-------------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------------
 
-class LVAlertListenClient(Client):
-    def __init__(self, jid, password, logger):
-        self.logger = logger
-
-        # we require a TLS connection
-        #  Specify sslv3 to get around Sun Java SSL bug handling session ticket
-        #  https://rt.phys.uwm.edu/Ticket/Display.html?id=1825
-        #  http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6728126
-        #t=TLSSettings(require=True,verify_peer=False, ctx=Context('sslv3'))
-        t=TLSSettings(require=True,verify_peer=False)
-
-        Client.__init__(self, jid, password, \
-            auth_methods=["sasl:GSSAPI","sasl:PLAIN"], tls_settings=t, keepalive=30)
-
-        # add the message handler 
-        self.interface_providers = [
-            LVAlertMessageHandler(self, logger),
-            ]
-
-    def stream_state_changed(self,state,arg):
-        self.logger.debug("state changed: %s %r " % (state,arg))
-
-class LVAlertSendClient(Client):
+class LVAlertClient(Client):
     def __init__(self, jid, password, max_attempts, logger):
         self.jid = jid
         self.max_attempts = max_attempts
@@ -114,6 +92,11 @@ class LVAlertSendClient(Client):
 
         Client.__init__(self, self.jid, password, \
             auth_methods=["sasl:GSSAPI","sasl:PLAIN"], tls_settings=t,keepalive=30)
+
+        # add the message handler 
+        self.interface_providers = [
+            LVAlertMessageHandler(self, logger),
+            ]
 
         # A counter for the onTimeout function
         self.counter = 0

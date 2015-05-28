@@ -15,8 +15,7 @@ from M2Crypto.SSL import Context
 # pubsub import must come first because it overloads part of the
 # StanzaProcessor class
 from ligo.lvalert import pubsub
-
-from ligo.overseer.lvalert_clients import LVAlertSendClient, LVAlertListenClient
+from ligo.overseer.lvalert_client import LVAlertClient
 
 from pyxmpp.all import JID
 from pyxmpp.exceptions import SASLAuthenticationFailed
@@ -34,17 +33,10 @@ parser.add_option("-a", "--username", action="store", type="string",
     default="", help="the username of the publisher or listener")
 parser.add_option("-b", "--password", action="store", type="string",
     default="", help="the password of the publisher or listener")
-# XXX Temp
-parser.add_option("-x", "--sender-username", action="store", type="string",
-    default="", help="the username of the publisher")
-parser.add_option("-y", "--sender-password", action="store", type="string",
-    default="", help="the password of the publisher")
 parser.add_option("-s", "--server", action="store", type="string",
     default="lvalert.cgca.uwm.edu", help="the pubsub server")
-parser.add_option("-r", "--sender-resource", action="store", type="string",
-    default="sender", help="resource to use in JID for the sender")
-parser.add_option("-i", "--listener-resource", action="store", type="string",
-    default="listener", help="resource to use in JID for the listener")
+parser.add_option("-r", "--resource", action="store", type="string",
+    default="overseer", help="resource to use in JID")
 
 # server options
 parser.add_option("-p", "--port", action="store", type="int",
@@ -81,9 +73,8 @@ if not options.password:
 
 # We are going to have the main thread as well as two subsidiary threads.
 # Logs from each will be distinguished by the name of the logger.
-over_logger = logging.getLogger('over')
-lstn_logger = logging.getLogger('lstn')
-send_logger = logging.getLogger('send')
+ovrseer_logger = logging.getLogger('ovrseer')
+lvalert_logger = logging.getLogger('lvalert')
 
 formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s: %(message)s')
 
@@ -95,7 +86,7 @@ error_fh = logging.FileHandler(options.error_filename)
 error_fh.setLevel(logging.ERROR)
 error_fh.setFormatter(formatter)
 
-for logger in [over_logger, lstn_logger, send_logger]:
+for logger in [ovrseer_logger, lvalert_logger]:
     if options.debug:
         logger.setLevel(logging.DEBUG)
     else:
@@ -104,10 +95,9 @@ for logger in [over_logger, lstn_logger, send_logger]:
     logger.addHandler(error_fh)
 
 pyxmpp_logger = logging.getLogger('pyxmpp')
-#pyxmpp_logger.setLevel(logging.ERROR)
-pyxmpp_logger.setLevel(logging.DEBUG)
+pyxmpp_logger.setLevel(logging.ERROR)
 pyxmpp_logger.addHandler(audit_fh)
-#pyxmpp_logger.addHandler(error_fh)
+pyxmpp_logger.addHandler(error_fh)
 
 #-------------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------------
@@ -120,7 +110,7 @@ class LVAOverseerProtocol(Protocol):
     def badRequest(self, msg):
         """What to do if the client sends us a bad request."""
         rdict = {'error': msg, 'success': False}
-        over_logger.error("Bad request: " + msg)
+        ovrseer_logger.error("Bad request: " + msg)
         self.transport.write(json.dumps(rdict))
         return
 
@@ -157,10 +147,10 @@ class LVAOverseerProtocol(Protocol):
             
             # Now send out the lvalert message.
             try:
-                over_logger.info("sending %s" % message_id)
+                ovrseer_logger.info("sending %s" % message_id)
                 self.factory.client.sendMessage(node, message)
             except Exception, e:
-                over_logger.error("SEND FAILED: %s" % str(e)) 
+                ovrseer_logger.error("SEND FAILED: %s" % str(e)) 
             self.transport.write(json.dumps({'success': True}))
         elif action == 'pop':
             # Pop the message in question from the outstanding dict.
@@ -168,7 +158,7 @@ class LVAOverseerProtocol(Protocol):
             if send_time:
                 dt = datetime.now() - send_time
                 # NOTE: total_seconds only works for python 2.7 or later.
-                over_logger.info("received %s with latency: %s" % (message_id, dt.total_seconds()))
+                ovrseer_logger.info("received %s with latency: %s" % (message_id, dt.total_seconds()))
             self.transport.write(json.dumps({'success': True}))
 
 class LVAOverseerFactory(ServerFactory):
@@ -187,7 +177,7 @@ class LVAOverseerFactory(ServerFactory):
             self.client.disconnect()
             self.thread.join()
         except Exception, e:
-            over_logger.error("Problem killing the LVAlert loop: %s" % str(e))
+            ovrseer_logger.error("Problem killing the LVAlert loop: %s" % str(e))
             exit(1)
 
     # Only accept connections from localhost
@@ -202,20 +192,20 @@ class LVAOverseerFactory(ServerFactory):
     # This should be run periodically on the same interval as the wait time.
     def checkOutstandingMessages(self):
         msg = "before culling outstanding, N = %d" % len(self.outstanding_messages.keys())
-        over_logger.debug(msg)
+        ovrseer_logger.debug(msg)
         pop_list = []
         for message_id, send_time in self.outstanding_messages.iteritems():
             dt = datetime.now() - send_time
             if dt.total_seconds() > options.msg_timeout:
                 msg = "message %s not received after %d seconds. Popping..." % (message_id, 
                     options.msg_timeout)
-                over_logger.error(msg)
+                ovrseer_logger.error(msg)
                 pop_list.append(message_id)
         # Pop the old messages from the list.
         for message_id in pop_list:
             self.outstanding_messages.pop(message_id, None)
         msg = "after culling outstanding, N = %d" % len(self.outstanding_messages.keys())
-        over_logger.debug(msg)
+        ovrseer_logger.debug(msg)
 
 #-------------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------------
@@ -264,27 +254,17 @@ class LVAlertThread(Thread):
 
 if __name__ == '__main__':
 
-    # Instantiate the jabber client for send.
-    sender_jid=JID(options.sender_username+"@"+options.server+"/"+options.sender_resource)
-    lvalert_send_client = LVAlertSendClient(sender_jid, options.sender_password, 
-        options.max_attempts, send_logger)
-    # Create a thread to run the jabber client loop. We do this in a 
-    # thread because the twisted server process needs access to the 
-    # same client object.
-    lvalert_send_thread = LVAlertThread(lvalert_send_client, send_logger)
-    lvalert_send_thread.start()
-
-    listener_jid=JID(options.username+"@"+options.server+"/"+options.listener_resource)
-    lvalert_listen_client = LVAlertListenClient(listener_jid, options.password, lstn_logger)
-    lvalert_listen_thread = LVAlertThread(lvalert_listen_client, lstn_logger)
-    lvalert_listen_thread.start()
+    # Instantiate the jabber client 
+    jid=JID(options.username+"@"+options.server+"/"+options.resource)
+    lvalert_client = LVAlertClient(jid, options.password, options.max_attempts, lvalert_logger)
+    lvalert_thread = LVAlertThread(lvalert_client, lvalert_logger)
+    lvalert_thread.start()
 
     # Start the twisted server. This will listen for new data to transmit via LVAlert.
-    # Note that the factory only needs direct access to the send client.
-    f = LVAOverseerFactory(lvalert_send_client, lvalert_send_thread)
+    f = LVAOverseerFactory(lvalert_client, lvalert_thread)
     reactor.listenTCP(options.port, f)
     # Set a looping call to cull the outstanding messages that are too old.
     l = task.LoopingCall(f.checkOutstandingMessages)
     l.start(options.msg_timeout)
-    over_logger.info("starting the overseer reactor...")
+    ovrseer_logger.info("starting the overseer reactor...")
     reactor.run()
