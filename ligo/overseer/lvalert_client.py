@@ -16,7 +16,7 @@ from pyxmpp.jabber.all import Client
 from pyxmpp.interface import implements
 from pyxmpp.interfaces import IMessageHandlersProvider
 
-from ligo.overseer.client import send_to_overseer
+from ligo.overseer.overseer_client import send_to_overseer
 
 #-------------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------------
@@ -119,7 +119,7 @@ class LVAlertClient(Client):
         self.stream.send(ps)
 
     def onSuccess(self,stanza):
-        self.logger.info("send operation successful ")
+        self.logger.debug("send operation successful ")
         return True
 
     def onError(self,stanza):

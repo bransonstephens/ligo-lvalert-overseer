@@ -15,17 +15,19 @@ class OverseerClient(protocol.Protocol):
         """
         Log the server response appropriately.
         """
-
         try:
+            # First clean out the dictionary. Being careful not to re-assign
+            for key in self.factory.rdict.keys():
+                self.factory.rdict.pop(key)
             self.factory.rdict.update(json.loads(data))
         except ValueError:
             msg = "server response not JSON: %s" % data
             self.factory.logger.error(msg)
             return
             
-        if self.factory.rdict['success']: 
+        if self.factory.rdict.get('success', None): 
             msg = "transmission succeeded."
-            self.factory.logger.info(msg)
+            self.factory.logger.debug(msg)
         else:
             errorMsg = self.factory.rdict.get('error', 'No reason given.')
             msg = "transmission failed: %s" % errorMsg
