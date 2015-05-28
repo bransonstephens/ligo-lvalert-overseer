@@ -15,7 +15,7 @@ while True:
     time.sleep(1)
     mdict = {
         'message': 'Hi, this is a test. %s ' % datetime.now().isoformat(),
-        'node_name' : 'branson_test',
+        'node_name' : 'branson_test2',
         'action': 'push'
     }
     rdict = manager.dict()

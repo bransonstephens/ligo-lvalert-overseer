@@ -34,6 +34,11 @@ parser.add_option("-a", "--username", action="store", type="string",
     default="", help="the username of the publisher or listener")
 parser.add_option("-b", "--password", action="store", type="string",
     default="", help="the password of the publisher or listener")
+# XXX Temp
+parser.add_option("-x", "--sender-username", action="store", type="string",
+    default="", help="the username of the publisher")
+parser.add_option("-y", "--sender-password", action="store", type="string",
+    default="", help="the password of the publisher")
 parser.add_option("-s", "--server", action="store", type="string",
     default="lvalert.cgca.uwm.edu", help="the pubsub server")
 parser.add_option("-r", "--sender-resource", action="store", type="string",
@@ -99,9 +104,10 @@ for logger in [over_logger, lstn_logger, send_logger]:
     logger.addHandler(error_fh)
 
 pyxmpp_logger = logging.getLogger('pyxmpp')
-pyxmpp_logger.setLevel(logging.ERROR)
+#pyxmpp_logger.setLevel(logging.ERROR)
+pyxmpp_logger.setLevel(logging.DEBUG)
 pyxmpp_logger.addHandler(audit_fh)
-pyxmpp_logger.addHandler(error_fh)
+#pyxmpp_logger.addHandler(error_fh)
 
 #-------------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------------
@@ -259,8 +265,8 @@ class LVAlertThread(Thread):
 if __name__ == '__main__':
 
     # Instantiate the jabber client for send.
-    sender_jid=JID(options.username+"@"+options.server+"/"+options.sender_resource)
-    lvalert_send_client = LVAlertSendClient(sender_jid, options.password, 
+    sender_jid=JID(options.sender_username+"@"+options.server+"/"+options.sender_resource)
+    lvalert_send_client = LVAlertSendClient(sender_jid, options.sender_password, 
         options.max_attempts, send_logger)
     # Create a thread to run the jabber client loop. We do this in a 
     # thread because the twisted server process needs access to the 
