@@ -42,7 +42,7 @@ setup(
     license=LICENSE,
     provides=['ligo', 'ligo.overseer'],
 #    namespace_packages=['ligo'],
-    packages=['ligo.overseer'],
+    packages=['ligo', 'ligo.overseer'],
     scripts=['bin/lvalert_overseer', 'bin/overseer_test_client'],
     requires=['pyxmpp','twisted'],
 )

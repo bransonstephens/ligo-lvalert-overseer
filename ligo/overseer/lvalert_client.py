@@ -5,8 +5,6 @@
 #-------------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------------
 import libxml2
-import datetime
-from M2Crypto.SSL import Context
 
 # pubsub import must come first because it overloads part of the
 # StanzaProcessor class
@@ -26,9 +24,8 @@ from ligo.overseer.overseer_client import send_to_overseer
 class LVAlertMessageHandler(object):
     implements(IMessageHandlersProvider)
    
-    def __init__(self, client, logger):
+    def __init__(self, client):
         self.client = client
-        self.logger = logger
 
     def get_message_handlers(self):
         """Return list of (message_type, message_handler) tuples.
@@ -43,12 +40,12 @@ class LVAlertMessageHandler(object):
         message = self.get_entry(stanza)
         node = self.get_node(stanza)
         if message:
-            self.logger.debug("node=%s message=%s" % (node, message))
+            self.client.logger.debug("node=%s message=%s" % (node, message))
             # The LVAlert listening client is meant to be run in a thread by the overseer.
             # So the client created by send_to_overseer is not in standalone mode.
             rdict = {}
             send_to_overseer({'message': message, 'node_name': node, 'action': 'pop'}, 
-                rdict, self.logger, standalone=False)
+                rdict, self.client.logger, standalone=False, port=self.client.overseer_port)
 
             # XXX Should we be doing something with the return dict?
     
@@ -78,16 +75,12 @@ class LVAlertMessageHandler(object):
 #-------------------------------------------------------------------------------------
 
 class LVAlertClient(Client):
-    def __init__(self, jid, password, max_attempts, logger):
+    def __init__(self, jid, password, max_attempts, logger, overseer_port):
         self.jid = jid
         self.max_attempts = max_attempts
         self.logger = logger
+        self.overseer_port = overseer_port
 
-        # we require a TLS connection
-        #  Specify sslv3 to get around Sun Java SSL bug handling session ticket
-        #  https://rt.phys.uwm.edu/Ticket/Display.html?id=1825
-        #  http://bugs.sun.com/bugdatabase/view_bug.do?bug_id=6728126
-        # t=TLSSettings(require=True,verify_peer=False, ctx=Context('sslv3'))
         t=TLSSettings(require=True,verify_peer=False)
 
         Client.__init__(self, self.jid, password, \
@@ -95,7 +88,7 @@ class LVAlertClient(Client):
 
         # add the message handler 
         self.interface_providers = [
-            LVAlertMessageHandler(self, logger),
+            LVAlertMessageHandler(self),
             ]
 
         # A counter for the onTimeout function
@@ -136,7 +129,7 @@ class LVAlertClient(Client):
             self.counter = self.counter + 1
             self.sendMessage(node,msg,recpt)
         else:
-            loggin.error("reached max_attempts. Disconnecting... ")
+            self.logger.error("reached max_attempts. Disconnecting... ")
             self.disconnect()
         return True
 

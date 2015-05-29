@@ -6,11 +6,10 @@ from hashlib import sha1
 
 from twisted.internet.protocol import ServerFactory, Protocol
 from twisted.internet import reactor, task
-from twisted.internet.error import ReactorNotRunning, ReactorAlreadyRunning
+from twisted.internet.error import ReactorNotRunning
 
 from threading import Thread
 from optparse import OptionParser
-from M2Crypto.SSL import Context
 
 # pubsub import must come first because it overloads part of the
 # StanzaProcessor class
@@ -47,10 +46,8 @@ parser.add_option("-e", "--error-filename", action="store", type="string",
     default="error.log", help="name for an error log file")
 
 # debugging options
-parser.add_option("-v", "--verbose", action="store_true",
-    default=False, help="be verbose as you process the request")
-parser.add_option("-g", "--debug", action="store_true",
-    default=False, help="should  print out lots of information")
+parser.add_option("-d", "--debug", action="store_true",
+    default=False, help="should print out lots of information")
 
 # timeout 
 parser.add_option("-m", "--max_attempts", action="store",
@@ -95,7 +92,10 @@ for logger in [ovrseer_logger, lvalert_logger]:
     logger.addHandler(error_fh)
 
 pyxmpp_logger = logging.getLogger('pyxmpp')
-pyxmpp_logger.setLevel(logging.ERROR)
+if options.debug:
+    pyxmpp_logger.setLevel(logging.DEBUG)
+else:
+    pyxmpp_logger.setLevel(logging.ERROR)
 pyxmpp_logger.addHandler(audit_fh)
 pyxmpp_logger.addHandler(error_fh)
 
@@ -214,23 +214,22 @@ class LVAOverseerFactory(ServerFactory):
 #-------------------------------------------------------------------------------------
 
 class LVAlertThread(Thread):
-    def __init__(self, lvalert_client, logger):
+    def __init__(self, lvalert_client):
         Thread.__init__(self)
         self.lvalert_client = lvalert_client
         self.kill_switch = False
-        self.logger = logger
         self.daemon = True
 
     def run(self):
         # If we get kicked off, just try to reconnect and start it over again.
         while not self.kill_switch:
-            self.logger.info("connecting... ")
+            self.lvalert_client.logger.info("connecting... ")
             try:
                 self.lvalert_client.connect()
                 self.lvalert_client.loop(1)
             except SASLAuthenticationFailed:
                 msg = "Authentication Error: Wrong password."
-                self.logger.error(msg)
+                self.lvalert_client.logger.error(msg)
                 self.kill_switch = True
                 try:
                     reactor.callFromThread(reactor.stop)
@@ -238,8 +237,8 @@ class LVAlertThread(Thread):
                     pass
             except Exception, e:
                 msg = "Error: %s" % str(e)
-                self.logger.error(msg)
-                self.logger.error("Exception type: %s" % type(e).__name__)
+                self.lvalert_client.logger.error(msg)
+                self.lvalert_client.logger.error("Exception type: %s" % type(e).__name__)
                 self.kill_switch = True
                 try:
                     reactor.callFromThread(reactor.stop)
@@ -256,8 +255,9 @@ if __name__ == '__main__':
 
     # Instantiate the jabber client 
     jid=JID(options.username+"@"+options.server+"/"+options.resource)
-    lvalert_client = LVAlertClient(jid, options.password, options.max_attempts, lvalert_logger)
-    lvalert_thread = LVAlertThread(lvalert_client, lvalert_logger)
+    lvalert_client = LVAlertClient(jid, options.password, options.max_attempts, 
+        lvalert_logger, options.port)
+    lvalert_thread = LVAlertThread(lvalert_client)
     lvalert_thread.start()
 
     # Start the twisted server. This will listen for new data to transmit via LVAlert.
