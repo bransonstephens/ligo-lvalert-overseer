@@ -22,4 +22,3 @@ while True:
     p = Process(target=send_to_overseer, args=(mdict, rdict, logger))
     p.start()
     p.join()
-    print "rdict = %s" % rdict
