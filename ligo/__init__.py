@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
-# Copyright (C) Duncan Macleod (2015)
+# Copyright (C) Branson Stephens (2015)
 #
-# This file was adapted from LIGO.ORG
+# This file is part of lvalert-overseer
 #
-# It is free software: you can redistribute it and/or modify
+# lvalert-overseer is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation, either version 3 of the License, or
 # (at your option) any later version.

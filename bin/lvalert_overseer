@@ -1,4 +1,22 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
+# Copyright (C) Branson Stephens (2015)
+#
+# This file is part of lvalert-overseer
+#
+# lvalert-overseer is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# It is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with LIGO.ORG.  If not, see <http://www.gnu.org/licenses/>.
+
 import json
 from datetime import datetime
 import logging
@@ -18,6 +36,8 @@ from ligo.overseer.lvalert_client import LVAlertClient
 
 from pyxmpp.all import JID
 from pyxmpp.exceptions import SASLAuthenticationFailed
+
+import pkg_resources
 
 #-------------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------------
@@ -55,7 +75,16 @@ parser.add_option("-m", "--max_attempts", action="store",
 parser.add_option("-t", "--msg-timeout", action="store",
     default=10, help="time in seconds after which a message is considered lost")
 
+# version
+parser.add_option("-v", "--version", action="store_true",
+    default=False, help="display version information")
+
 options,args = parser.parse_args()
+
+if options.version:
+    version = pkg_resources.require("ligo-lvalert-overseer")[0].version
+    print "LVAlert Overseer v. %s" % version
+    exit(0)
 
 if not options.username:
     raise ValueError, "--username is required"
