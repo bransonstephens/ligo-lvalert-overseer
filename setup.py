@@ -18,7 +18,7 @@
 # along with lvalert-overseer.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
-from setuptools import setup
+from setuptools import setup, find_packages
 #from distutils.core import setup
 
 version = "0.1"
@@ -41,8 +41,7 @@ setup(
     url=None,
     license=LICENSE,
     namespace_packages=['ligo'],
-    provides=['ligo.overseer'],
-    packages=['ligo.overseer'],
+    packages=find_packages(),
     scripts=['bin/lvalert_overseer', 'bin/overseer_test_client'],
     requires=['pyxmpp','twisted'],
 )
