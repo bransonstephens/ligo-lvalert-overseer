@@ -41,5 +41,5 @@ setup(
     namespace_packages=['ligo'],
     packages=find_packages(),
     scripts=['bin/lvalert_overseer', 'bin/overseer_test_client'],
-    requires=['pyxmpp','twisted'],
+    install_requires=['pyxmpp','twisted','ligo-lvalert'],
 )
