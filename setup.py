@@ -19,16 +19,14 @@
 
 import os
 from setuptools import setup, find_packages
-#from distutils.core import setup
 
 version = "0.1"
-
 AUTHOR = 'Branson Stephens'
 AUTHOR_EMAIL = 'branson.stephens@ligo.org'
 LICENSE = 'GPLv3'
 
-description = "LVAlert Overseer"
-long_description = "An overseer for sending LVAlert messages and logging their return with latency info."
+description = "LVAlert Overseer Server and Client Tools"
+long_description = "The LVAlert overseer provides a way to maintain an open connection to LVAlert for sending message, and to log the outgoing and incoming messages and measure latencies."
 
 
 setup(
