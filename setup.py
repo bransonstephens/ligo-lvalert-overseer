@@ -20,7 +20,7 @@
 import os
 from setuptools import setup, find_packages
 
-version = "0.1"
+version = "0.1.1"
 AUTHOR = 'Branson Stephens'
 AUTHOR_EMAIL = 'branson.stephens@ligo.org'
 LICENSE = 'GPLv3'
