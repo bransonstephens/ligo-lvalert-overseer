@@ -80,7 +80,11 @@ def send_to_overseer(mdict, rdict, logger, standalone=True, port=8000):
     f = OverseerClientFactory(json.dumps(mdict), rdict, logger, standalone)
     if standalone:
         reactor.connectTCP("localhost", port, f)
-        reactor.run()
+        # The installSignalHandlers=0 is necessary to avoid a huge volume
+        # of warning messages. mod_wsgi doesn't allow these signal handlers
+        # to be installed by default anyway, as they could interfere with 
+        # Apache sending and receiving signals.
+        reactor.run(installSignalHandlers=0)
     else:
         reactor.callFromThread(reactor.connectTCP, "localhost", port, f)
 
