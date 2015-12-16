@@ -20,6 +20,7 @@
 import json
 from datetime import datetime
 import logging
+from logging import handlers
 from hashlib import sha1
 
 from twisted.internet.protocol import ServerFactory, Protocol
@@ -104,11 +105,11 @@ lvalert_logger = logging.getLogger('lvalert')
 
 formatter = logging.Formatter('%(asctime)s %(name)s %(levelname)s: %(message)s')
 
-audit_fh = logging.FileHandler(options.audit_filename)
+audit_fh = handlers.TimedRotatingFileHandler(options.audit_filename, 'midnight', backupCount=8)
 audit_fh.setLevel(logging.DEBUG)
 audit_fh.setFormatter(formatter)
 
-error_fh = logging.FileHandler(options.error_filename)
+error_fh = handlers.TimedRotatingFileHandler(options.error_filename, 'midnight', backupCount=8)
 error_fh.setLevel(logging.ERROR)
 error_fh.setFormatter(formatter)
 
